@@ -25,4 +25,8 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\mdComposer.Core\mdComposer.Core.csproj" />
+    </ItemGroup>
+
 </Project>

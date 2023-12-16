@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
+﻿using MdComposer;
 
 internal static class Program
 {
@@ -13,18 +12,30 @@ internal static class Program
         }
 
         FileInfo template = new FileInfo(args[0]);
+        FileInfo result = new FileInfo(args[1]);
+        
         if (!template.Exists)
         {
             Console.WriteLine($"File {args[0]} not found");
             return 1;
         }
-
-        FileInfo result = new FileInfo(args[1]);
         
-        Directory.SetCurrentDirectory(template.DirectoryName!);
+        Console.WriteLine($"Composing: '{template}' -> '{result}'");
 
-        Compose(template, result);
+        var composer = new Composer();
+        string composition = composer.Compose(
+            File.ReadAllText(template.FullName),
+            path =>
+            {
+                Console.WriteLine(path);
+                Uri templateUri = new Uri(template.FullName);
+                Uri pathUri = new Uri(templateUri, path);
+                return File.ReadAllText(pathUri.AbsolutePath);
+            });
 
+        File.WriteAllText(result.FullName, composition);
+        
+        Console.WriteLine("Done.");
         return 0;
     }
 
@@ -32,26 +43,16 @@ internal static class Program
     {
         Console.WriteLine($"Composing: '{templateName}' -> '{resultName}'");
 
-        StringBuilder result = new StringBuilder();
-        
-        string template = File.ReadAllText(templateName.FullName);
+        var composer = new Composer();
+        string result = composer.Compose(
+            File.ReadAllText(templateName.FullName),
+            path =>
+            {
+                Console.WriteLine(path);
+                return File.ReadAllText(path);
+            });
 
-        int pos = 0;
-        foreach (Match match in Regex.Matches(template, "```[A-Za-z]*:(.*)\n"))
-        {
-            var group = match.Groups[1];
-            Console.Write(group.Value);
-            
-            result.AppendLine(template.Substring(pos, group.Index - pos - 1));
-            pos = group.Index + group.Length;
-            
-            result.Append(File.ReadAllText(group.Value));
-            
-            Console.WriteLine(" ... OK");
-        }
-        result.Append(template.Substring(pos, template.Length - pos));
-        
-        File.WriteAllText(resultName.FullName, result.ToString());
+        File.WriteAllText(resultName.FullName, result);
         
         Console.WriteLine("Done.");
     }
